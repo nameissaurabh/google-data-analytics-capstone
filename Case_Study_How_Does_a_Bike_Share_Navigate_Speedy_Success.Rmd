@@ -1,0 +1,212 @@
+---
+title: 'Case Study: How Does a Bike-Share Navigate Speedy Success?'
+author: "Saurabh Ghadge"
+date: "10/02/2022"
+output: html_document
+---
+In this case study, I am going to perform data analysis for a fictional bike-share company in order to help them attract more riders. Along the way, I am also goin to perform numerous real-world tasks of a junior data analyst by following the steps of the data analysis process: Ask, Prepare, Process, Analyze, Share, and Act.  
+
+#### Scenario  
+
+You are a junior data analyst working in the marketing analyst team at Cyclistic, a bike-share company in Chicago. The director of marketing believes the company’s future success depends on maximizing the number of annual memberships. Therefore, your team wants to understand how casual riders and annual members use Cyclistic bikes differently. From these insights,
+your team will design a new marketing strategy to convert casual riders into annual members. But first, Cyclistic executives must approve your recommendations, so they must be backed up with compelling data insights and professional data visualizations.  
+
+##### 1) Ask:  
+Three questions will guide the future marketing program:  
+
+- 1. How do annual members and casual riders use Cyclistic bikes differently?
+- 2. Why would casual riders buy Cyclistic annual memberships?
+- 3. How can Cyclistic use digital media to influence casual riders to become members?
+
+I am assigned to answer the first question: How do annual members and casual riders use Cyclistic bikes differently?  
+*Key tasks*  
+
+- 1. Identify the business task
+- 2. Consider key stakeholders  
+
+*Buiseness Task*
+ Design marketing strategies aimed at converting casual riders into annual members. In order to
+do that, however, the marketing analyst team needs to better understand how annual members and casual riders differ, why casual riders would buy a membership, and how digital media could affect their marketing tactics. Moreno and her team are interested in analyzing the Cyclistic historical bike trip data to identify trends.  
+  
+##### Prepare:  
+I will use Cyclistic’s historical trip data to analyze and identify trends([here](https://divvy-tripdata.s3.amazonaws.com/index.html)).This is public data that you can use to explore how different customer types are using Cyclistic bikes.(Note: The datasets have a different name because Cyclistic is a fictional company. For the purposes of this case study).  
+
+*Key tasks*
+- 1. Download data and store it appropriately.
+- 2. Identify how it’s organized.
+- 3. Sort and filter the data. 
+I downloaded the data for last 12 months on my local machine. In following steps we will read the data and make the columns in consistent format.  
+
+```{r,cache=TRUE}
+library(tidyverse)
+setwd("E:/divvy_tripdata12mon")
+temp = list.files(pattern = "*.csv")
+df4 <- read_csv(temp[1])
+head(df4,2)
+```
+  
+  started_at and ended_ at should be in *datetime* but here, they are in character type so we will convert them into datetime.  
+```{r,cache=TRUE}  
+library(lubridate)
+df4$started_at <- dmy_hm(df4$started_at)
+df4$ended_at <- dmy_hm(df4$ended_at)
+```
+```{r,cache=TRUE}
+setwd("E:/divvy_tripdata12mon")
+temp = list.files(pattern = "*.csv")
+df5 <- read_csv(temp[2]);head(df5,2)
+df6 <- read_csv(temp[3]);head(df6,2)
+df7 <- read_csv(temp[4]);head(df7,2)
+df8 <- read_csv(temp[5]);head(df8,2)
+df9 <- read_csv(temp[6]);head(df9,2)
+df10 <- read_csv(temp[7]);head(df10,2)
+df11 <- read_csv(temp[8]);head(df11,2)
+df12 <- read_csv(temp[9]);head(df12,2)
+df1 <- read_csv(temp[10]);head(df1,2)
+df2 <- read_csv(temp[11]);head(df2,2)
+df3 <- read_csv(temp[12]);head(df3,2)
+```
+
+ All other column formats are seen to be consistent.So we will now bind these dataframes into single data frame for further Analysis.
+```{r,cache=TRUE}
+divvy_trip <- rbind(df4,df5,df6,df7,df8,df9,df10,df11,df12,df1,df2,df3)
+remove(df4,df5,df6,df7,df8,df9,df10,df11,df12,df1,df2,df3)
+head(divvy_trip)
+```
+ 
+##### 2) Process:  
+
+*Key tasks*  
+
+- 1. Check the data for errors.
+- 2. Choose your tools.
+- 3. Transform the data so you can work with it effectively.
+- 4. Document the cleaning process  
+ first of all we will check for missing Values. We will remove them as it will not make any sense if try to impute with another measure or values for missing one.  
+```{r,cache=TRUE}
+divvy_trip <- divvy_trip[complete.cases(divvy_trip),]
+```
+  
+  We are now going to introduced some calculated columns..  
+  
+- ride_length (time taken by ride)
+- day_of_week (day of ride)
+- month (month of ride)  
+
+```{r,cache=TRUE}
+divvy_trip <- divvy_trip %>% mutate(ride_length = ended_at - started_at) #in seconds
+```
+  
+  Here, are some ride length are negative which makes no sense, Which will surely can be a data entry error. So,we are going to filter out those rows.  
+  
+```{r,cache=TRUE}
+divvy_trip <- divvy_trip %>% filter ( ride_length > 0)
+divvy_trip$ride_length <- seconds_to_period(divvy_trip$ride_length)
+```
+  
+  Now our filtered data has dimension ..  
+  
+```{r,cache=TRUE}  
+dim(divvy_trip)
+```
+We lost about 7% of data in total :(, but not worry we have enough large data for our analysis. Now we will calculate other columns.  
+
+```{r,cache=TRUE}
+divvy_trip <- divvy_trip %>% mutate(day_of_week = wday(started_at,label = TRUE,abbr = TRUE))
+divvy_trip <- divvy_trip %>% mutate(month = month(started_at, label = TRUE,abbr = TRUE))
+```
+
+##### Analyze:
+*Key tasks*  
+
+- 1. Aggregate your data so it’s useful and accessible.
+- 2. Organize and format your data.
+- 3. Perform calculations.
+- 4. Identify trends and relationships.  
+
+```{r,cache=TRUE}
+summary(divvy_trip$ride_length)
+```
+  
+  This is basic summary of column ride_length, From which we observe that minimum ride length is of only 1 seconds while the maximum ride_length is of 40 days,18 hour and 40 minutes long.  The overall mean of ride_length is 28 Minutes.  
+```{r,cache=TRUE}
+member_casual <- divvy_trip %>% 
+        group_by(member_casual) %>% 
+        summarize(mean_rlen = ms(mean(ride_length)))
+member_casual
+```
+  
+  For both member and casual riders shows a same average ride length.  
+We will next try to summarize by day wise ride_length average of casual and member riders.  
+```{r,cache=TRUE}
+day_wise <- divvy_trip %>% 
+        group_by(day_of_week,member_casual) %>% 
+        summarize(mean_rlen = ms(mean(ride_length)))
+day_wise
+```
+These values are sort of difficult to understand as they all nearly looking same. We will plot a plot taking days on x axis and mean seconds ride_length on y_ axis by breaking them by casual rider and member rider.  
+```{r,cache=TRUE}
+ggplot(data = day_wise,mapping = aes(day_of_week,period_to_seconds(mean_rlen))) + geom_bar(stat = 'identity') + facet_grid(.~member_casual)
+```
+  
+  We see that average ride_length for casual riders is longer than that of member riders. Also Casual riders are tends to have more average ride_length on Thursday and Friday while member riders on wed and friday.  
+  We can further broken down ride_length by *month*. 
+```{r,cache=TRUE}  
+month_ <- divvy_trip %>% 
+        group_by(month,member_casual) %>% 
+        summarize(mean_rlen = ms(mean(ride_length,na.rm = TRUE)))
+ggplot(data = month_,mapping = aes(month,period_to_seconds(mean_rlen),color = member_casual)) + geom_point() 
+```
+    
+   From plot for casual riders month wise average ride length is higher than member riders and also both shows slightly decrease in ride_length over month.  
+   Now it's important to check how many rides are there by month and day for casual and member rider.  
+```{r,cache=TRUE}
+day_count <- divvy_trip %>% 
+        group_by(day_of_week,member_casual) %>% 
+        summarize(number_of_rides = n()) %>% 
+        arrange(member_casual)
+ggplot(day_count,mapping = aes (day_of_week,number_of_rides)) + geom_bar(stat = 'identity') + scale_y_continuous(labels = scales::comma) + facet_grid(member_casual~.)
+```
+
+  
+For casual riders number of rides is far less as compared to member riders.Next we are going to check for monthwise number of rides for both type of risers.  
+```{r,cache=TRUE}
+month_count <- divvy_trip %>% 
+        group_by(month,member_casual) %>% 
+        summarize(number_of_rides = n()) 
+ggplot(month_count,mapping = aes(month,number_of_rides)) + geom_bar(stat = 'identity') + scale_y_continuous(labels = scales::comma) + facet_grid(member_casual~.)
+```
+  
+   We see that for both riders number of rides from April month are start to increases, for August number of rides are higher among all months and then it starts to fall down.  
+   Now we will try to find out relation between start_station and member_casual riders..  
+```{r,cache=TRUE,warning=FALSE}
+start_station <- divvy_trip %>% 
+        group_by(start_station_id,member_casual) %>% 
+        summarize(number_of_rides = n(),mean_rlen = ms(mean(ride_length))) %>% 
+        arrange(desc(number_of_rides),desc(mean_rlen))
+start_station[1:10,]
+```
+  
+  Here,we are seeing 10 highest number of rides at stations with their riders type and average ride length.  
+  
+```{r,cache=TRUE}
+ggplot(data = start_station[1:10,],mapping = aes(start_station_id,period_to_seconds(mean_rlen),size = number_of_rides,color = member_casual)) + geom_point()
+```
+
+  
+  From this plot now we can visually clarify that at station 35 most of rides were happened and they are by casual members.Also at station 177 number of rides for both riders are constant.It seems that member riders ride length is pretty much higher than casual riders.   
+  
+Similarly, we can check at which station most of the rides were ended and by which types of riders(member/Casual).  
+```{r,cache=TRUE,warning = FALSE}
+end_station <- divvy_trip %>% 
+        group_by(end_station_id,member_casual) %>% 
+        summarize(number_of_rides = n(),mean_rlen = ms(mean(ride_length))) %>% 
+        arrange(desc(number_of_rides),desc(mean_rlen))
+ggplot(data = end_station[1:10,],mapping = aes(end_station_id,period_to_seconds(mean_rlen),size = number_of_rides,color = member_casual)) + geom_point()
+```
+
+  
+  At station 35 most of casual riders rides were ended and also their ride length is also seems to be maximum than member riders, which is completely different from start_station_id where ride_length of member riders were seen to be maximum, also lots of member riders ended their rides at station 176.  
+  
+Next phase of analysis i.e. *Share* and *Act* can be found on attached ppt...
+
